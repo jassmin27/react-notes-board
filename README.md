@@ -4,6 +4,12 @@ A CRUD-style notes app built with React.
 
 Create, search, filter, and manage tagged notes with local persistence and tested user flows.
 
+Live demo: https://react-notes-board.vercel.app/
+
+## Preview
+
+![React Notes Board preview](src/assets/preview.png)
+
 ## Features
 
 - Add and delete notes
