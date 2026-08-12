@@ -1,0 +1,322 @@
+:root {
+  /* Backgrounds */
+  --color-bg: #111111;
+  --color-surface: #1a1a1a;
+  --color-surface-hover: #262626;
+  --color-input-bg: #141414;
+
+  /* Borders */
+  --color-border: #2e2e2e;
+  --color-border-light: #3a3a3a;
+
+  /* Text */
+  --color-text: #f3f4f6;
+  --color-text-muted: #a1a1aa;
+  --color-placeholder: #8a8a8a;
+
+  /* Accent / Primary */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-focus: rgba(59, 130, 246, 0.25);
+
+  --color-primary-soft: rgba(79, 140, 255, 0.12);
+  --color-primary-border: rgba(79, 140, 255, 0.25);
+
+  --color-primary-text: #ffffff;
+
+  /* Status */
+  --color-danger: #f87171;
+  --color-danger-bg: rgba(248, 113, 113, 0.12);
+
+  /* Note Saving Status */
+  --color-status-saving: #3987e7;
+  --color-status-success: #59caa1;
+  --color-status-error: #ed7979;
+
+  /* Tags */
+  --color-tag-bg: rgba(34, 197, 94, 0.06);
+  --color-tag-text: #9acfb5;
+  --color-tag-border: rgba(34, 197, 94, 0.12);
+
+  /* Shadow */
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Spacing */
+  --space-xs: 0.3rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+}
+
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  padding: 2.5rem 0;
+}
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+  padding: 0;
+}
+h2 {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+h3 {
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.container {
+  width: min(90%, 650px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.app-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.app-heading-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: white;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+.app-heading-text h1 {
+  margin: 0;
+  line-height: 1.1;
+  font-weight: 800;
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  letter-spacing: -0.02em;
+}
+.app-heading-text p {
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
+}
+.section-card {
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: 6px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.section-title-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-note {
+  display: flex;
+  flex-direction: column;
+}
+.add-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.field-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.input-field {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+.input-field:disabled {
+  color: var(--color-placeholder);
+}
+.input-field::placeholder {
+  color: var(--color-placeholder);
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-focus);
+}
+.add-note-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.add-note-status {
+  font-size: 0.9rem;
+  color: var(--color-placeholder);
+}
+.add-note-status.saving {
+  color: var(--color-status-saving);
+}
+.add-note-status.success {
+  color: var(--color-status-success);
+}
+.add-note-status.error {
+  color: var(--color-status-error);
+}
+.add-note-btn {
+  padding: 0.6rem 2rem;
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s ease-out;
+}
+.add-note-btn:not(:disabled):hover {
+  background: var(--color-primary-hover);
+}
+.add-note-btn:disabled {
+  background-color: var(--color-border-light);
+  cursor: default;
+}
+.notes-controls {
+  display: flex;
+  flex-direction: column;
+}
+.search-notes {
+  display: flex;
+  flex-direction: column;
+}
+.filter-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+.filter-pill {
+  font-size: 0.9rem;
+  border-radius: 5px;
+  border: 1px solid var(--color-border-light);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  padding: 5px 15px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+.filter-pill.active {
+  font-weight: 500;
+}
+.filter-pill.active,
+.filter-pill:hover {
+  background-color: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}
+.notes-section {
+  display: flex;
+  flex-direction: column;
+}
+.notes-section p.no-notes-found-msg {
+  font-size: 0.9rem;
+}
+.note-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.note-card {
+  display: flex;
+  gap: var(--space-sm);
+  flex-direction: column;
+}
+.note-card header {
+  display: flex;
+  justify-content: space-between;
+}
+.note-card header h3 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+.note-card header .delete-note-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-placeholder);
+  padding: 4px;
+  line-height: 0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+.note-card header .delete-note-btn:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+}
+.note-card .content p {
+  line-height: 1.5;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-muted);
+}
+.note-card footer .tags {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+.note-card footer .tag {
+  line-height: 1.5;
+  display: inline-flex;
+  font-size: 0.8rem;
+
+  background: var(--color-tag-bg);
+  border: 1px solid var(--color-tag-border);
+  color: var(--color-tag-text);
+
+  padding: 2px 6px;
+  border-radius: 6px;
+}
