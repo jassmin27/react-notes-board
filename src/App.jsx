@@ -3,7 +3,7 @@ import NoteForm from "./components/NoteForm.jsx";
 import NotesControls from "./components/NotesControls.jsx";
 import NotesList from "./components/NotesList.jsx";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 const STORAGE_KEY = "react-notes-board";
@@ -98,13 +98,28 @@ const fakeAPI = {
       }, 1500);
     });
   },
+
+  updateNote(note) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const serverIsUp = Math.random() >= 0.2;
+        if (serverIsUp) {
+          resolve(note);
+        } else {
+          reject(new Error("Failed to update note. Please try again."));
+        }
+      }, 1500);
+    });
+  },
 };
 
-function App({ saveNote = fakeAPI.saveNote }) {
+function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
   const [notes, setNotes] = useState(loadNotesFromStorage);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [activeTag, setActiveTag] = useState("");
+  const [noteToEdit, setNoteToEdit] = useState(null);
+  const formRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
@@ -121,33 +136,43 @@ function App({ saveNote = fakeAPI.saveNote }) {
     };
   }, [searchText]);
 
-  useEffect(() => {
-    if (notes.length === 0) {
+  const handleDeleteNote = (noteId) => {
+    const updatedNotes = notes.filter((note) => note.id !== noteId);
+
+    setNotes(updatedNotes);
+
+    if (noteToEdit?.id === noteId) {
+      setNoteToEdit(null);
+    }
+
+    if (updatedNotes.length === 0) {
       setSearchText("");
       setDebouncedSearchText("");
       setActiveTag("");
-
       return;
     }
 
-    if (!activeTag) return;
+    if (activeTag) {
+      const noteWithActiveTagExists = updatedNotes.some((note) =>
+        note.tags.includes(activeTag),
+      );
 
-    const noteWithActiveTagExists = notes.some((note) =>
-      note.tags.includes(activeTag),
-    );
-
-    if (!noteWithActiveTagExists) {
-      setActiveTag("");
+      if (!noteWithActiveTagExists) {
+        setActiveTag("");
+      }
     }
-  }, [notes, activeTag]);
-
-  const handleDeleteNote = (noteId) => {
-    setNotes((previousNotes) =>
-      previousNotes.filter((note) => note.id !== noteId),
-    );
   };
 
-  const handleAddNote = async (note) => {
+  const handleEditNote = (note) => {
+    setNoteToEdit(note);
+
+    formRef.current?.scrollIntoView?.({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const validateNoteTitleAndContent = (note) => {
     if (!note.title.trim()) {
       throw new Error("Title is required.");
     }
@@ -155,10 +180,36 @@ function App({ saveNote = fakeAPI.saveNote }) {
     if (!note.content.trim()) {
       throw new Error("Content is required.");
     }
+  };
 
+  const handleAddNote = async (note) => {
+    validateNoteTitleAndContent(note);
     const newNote = createNote(note);
     const savedNote = await saveNote(newNote);
     setNotes((previousNotes) => [...previousNotes, savedNote]);
+  };
+
+  const handleUpdateNote = async (updatedNote) => {
+    validateNoteTitleAndContent(updatedNote);
+    const parsedNote = parseNote(updatedNote);
+    const savedNote = await updateNote(parsedNote);
+
+    setNotes((currentNotes) =>
+      currentNotes.map((note) =>
+        note.id === savedNote.id
+          ? {
+              ...note,
+              ...savedNote,
+            }
+          : note,
+      ),
+    );
+
+    setNoteToEdit(null);
+  };
+
+  const handleCancelEdit = () => {
+    setNoteToEdit(null);
   };
 
   const visibleNotes = getVisibleNotes(notes, debouncedSearchText, activeTag);
@@ -168,7 +219,13 @@ function App({ saveNote = fakeAPI.saveNote }) {
   return (
     <main className="container">
       <AppHeader />
-      <NoteForm onAddNote={handleAddNote} />
+      <NoteForm
+        formRef={formRef}
+        noteToEdit={noteToEdit}
+        onAddNote={handleAddNote}
+        onUpdateNote={handleUpdateNote}
+        onCancelEdit={handleCancelEdit}
+      />
       {notes.length > 0 && (
         <>
           <NotesControls
@@ -184,6 +241,7 @@ function App({ saveNote = fakeAPI.saveNote }) {
             notes={visibleNotes}
             isSearching={debouncedSearchText.length > 0}
             onDelete={handleDeleteNote}
+            onEdit={handleEditNote}
           />
         </>
       )}

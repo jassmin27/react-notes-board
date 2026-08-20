@@ -7,6 +7,7 @@ function SearchBox(props) {
           className="input-field"
           type="text"
           id="search-notes-text"
+          aria-label="Search notes"
           placeholder="Search by title or content..."
           value={searchText}
           onChange={(e) => onSearchChange(e.target.value)}

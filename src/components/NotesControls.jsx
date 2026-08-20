@@ -13,12 +13,12 @@ function NotesControls(props) {
   } = props;
   return (
     <section className="notes-controls section-card">
-      <div className="section-title">
-        <span className="section-title-icon">
+      <h2 className="section-title">
+        <span className="section-title-icon" aria-hidden="true">
           <Search size={17} aria-hidden="true" />
         </span>
         Find Notes
-      </div>
+      </h2>
       <SearchBox searchText={searchText} onSearchChange={onSearchChange} />
       <TagFilters
         tagsSummary={tagsSummary}

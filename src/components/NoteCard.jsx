@@ -1,36 +1,29 @@
+import { Pencil, Trash2 } from "lucide-react";
+
 function NoteCard(props) {
-  const { note, onDelete } = props;
+  const { note, onEdit, onDelete } = props;
   return (
     <article className="note-card section-card">
       <header>
         <h3>{note.title}</h3>
-        <button
-          type="button"
-          className="delete-note-btn"
-          aria-label="Delete note"
-          onClick={() => onDelete(note.id)}
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-            <line
-              x1="6"
-              y1="6"
-              x2="18"
-              y2="18"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <line
-              x1="6"
-              y1="18"
-              x2="18"
-              y2="6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <div className="note-actions">
+          <button
+            type="button"
+            className="note-action-btn note-action-btn--edit"
+            aria-label="Edit note"
+            onClick={() => onEdit(note)}
+          >
+            <Pencil size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="note-action-btn note-action-btn--delete"
+            aria-label="Delete note"
+            onClick={() => onDelete(note.id)}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+          </button>
+        </div>
       </header>
       <div className="content">
         <p>{note.content}</p>

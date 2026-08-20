@@ -1,56 +1,130 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 
 const STATUS_DATA = {
   saving: {
     msg: "Saving...",
     className: "saving",
   },
-  success: {
+  saveSuccess: {
     msg: "Note saved successfully!",
     className: "success",
   },
-  error: {
+  saveError: {
     msg: "Failed to save note.",
+    className: "error",
+  },
+  updating: {
+    msg: "Updating...",
+    className: "saving",
+  },
+  updateSuccess: {
+    msg: "Note updated successfully!",
+    className: "success",
+  },
+  updateError: {
+    msg: "Failed to update note.",
     className: "error",
   },
 };
 
+const getInitialNote = (noteToEdit) => {
+  if (!noteToEdit) {
+    return {
+      title: "",
+      content: "",
+      tags: "",
+    };
+  }
+
+  return {
+    ...noteToEdit,
+    tags: Array.isArray(noteToEdit.tags)
+      ? noteToEdit.tags.join(", ")
+      : (noteToEdit.tags ?? ""),
+  };
+};
+
 function NoteForm(props) {
-  const { onAddNote } = props;
-  const [note, setNote] = useState({
-    title: "",
-    content: "",
-    tags: "",
-  });
-  const [addNoteStatus, setAddNoteStatus] = useState({
+  const { noteToEdit = null, formRef } = props;
+
+  const [formStatus, setFormStatus] = useState({
     msg: "",
     className: "",
   });
+
+  const isEditing = noteToEdit !== null;
+
+  return (
+    <section
+      ref={formRef}
+      className={`add-note section-card ${
+        isEditing ? "add-note--editing" : ""
+      }`}
+    >
+      <NoteFormFields
+        key={noteToEdit?.id ?? "new"}
+        {...props}
+        noteToEdit={noteToEdit}
+        formStatus={formStatus}
+        setFormStatus={setFormStatus}
+      />
+    </section>
+  );
+}
+
+function NoteFormFields({
+  onAddNote,
+  onUpdateNote,
+  onCancelEdit,
+  noteToEdit = null,
+  formStatus,
+  setFormStatus,
+}) {
+  const [note, setNote] = useState(() => getInitialNote(noteToEdit));
+
+  const isEditing = noteToEdit !== null;
+  const isSubmitting = formStatus.className === STATUS_DATA.saving.className;
+
+  const handleCancelEdit = () => {
+    setFormStatus({
+      msg: "",
+      className: "",
+    });
+
+    onCancelEdit();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      setAddNoteStatus(STATUS_DATA.saving);
-      await onAddNote(note);
+      if (isEditing) {
+        setFormStatus(STATUS_DATA.updating);
+        await onUpdateNote(note);
+        setFormStatus(STATUS_DATA.updateSuccess);
+      } else {
+        setFormStatus(STATUS_DATA.saving);
+        await onAddNote(note);
+        setFormStatus(STATUS_DATA.saveSuccess);
+        setNote({ title: "", content: "", tags: "" });
+      }
 
-      setNote({ title: "", content: "", tags: "" });
-      setAddNoteStatus(STATUS_DATA.success);
-
-      setTimeout(
-        () =>
-          setAddNoteStatus({
-            msg: "",
-            className: "",
-          }),
-        2000,
-      );
+      setTimeout(() => {
+        setFormStatus({
+          msg: "",
+          className: "",
+        });
+      }, 2000);
     } catch (error) {
-      setAddNoteStatus(
+      const fallbackStatus = isEditing
+        ? STATUS_DATA.updateError
+        : STATUS_DATA.saveError;
+
+      setFormStatus(
         error.message
-          ? { ...STATUS_DATA.error, msg: error.message }
-          : STATUS_DATA.error,
+          ? { ...fallbackStatus, msg: error.message }
+          : fallbackStatus,
       );
     }
   };
@@ -58,7 +132,7 @@ function NoteForm(props) {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    setAddNoteStatus({ msg: "", className: "" });
+    setFormStatus({ msg: "", className: "" });
 
     setNote((currentNote) => ({
       ...currentNote,
@@ -66,73 +140,116 @@ function NoteForm(props) {
     }));
   };
 
-  const isSaving = addNoteStatus.className === STATUS_DATA.saving.className;
+  const getFormTitle = () => {
+    const icon = isEditing ? (
+      <Pencil size={16} aria-hidden="true" />
+    ) : (
+      <Plus size={18} aria-hidden="true" />
+    );
+
+    const title = isEditing ? "Edit Note" : "Add Note";
+
+    return (
+      <h2 className="section-title">
+        <span className="section-title-icon" aria-hidden="true">
+          {icon}
+        </span>
+        {title}
+      </h2>
+    );
+  };
 
   return (
-    <section className="add-note section-card">
-      <div className="section-title">
-        <span className="section-title-icon">
-          <Plus size={18} aria-hidden="true" />
-        </span>
-        Add Note
+    <form className="add-note-form" onSubmit={handleSubmit}>
+      {getFormTitle()}
+
+      <div className="field-group">
+        <label htmlFor="title">Title</label>
+        <input
+          className="input-field"
+          type="text"
+          id="title"
+          name="title"
+          value={note.title}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+          required
+        />
       </div>
-      <form className="add-note-form" onSubmit={handleSubmit}>
-        <div className="field-group">
-          <label htmlFor="title">Title</label>
-          <input
-            className="input-field"
-            type="text"
-            id="title"
-            name="title"
-            value={note.title}
-            onChange={handleInputChange}
-            disabled={isSaving}
-            required
-          />
+
+      <div className="field-group">
+        <label htmlFor="content">Content</label>
+        <textarea
+          className="input-field"
+          id="content"
+          rows="4"
+          name="content"
+          value={note.content}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+          required
+        ></textarea>
+      </div>
+
+      <div className="field-group">
+        <label htmlFor="tags">Tags</label>
+        <input
+          className="input-field"
+          type="text"
+          id="tags"
+          name="tags"
+          placeholder="e.g. work, ideas"
+          value={note.tags}
+          onChange={handleInputChange}
+          disabled={isSubmitting}
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="form-footer">
+        <p
+          className={
+            formStatus.className
+              ? `form-status ${formStatus.className}`
+              : "form-status"
+          }
+          aria-live="polite"
+        >
+          {formStatus.msg}
+        </p>
+
+        <div className="form-actions">
+          {!isEditing ? (
+            <button
+              type="submit"
+              className="form-action-btn add-note-btn"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Add Note"}
+            </button>
+          ) : (
+            <div className="form-edit-actions">
+              <button
+                type="submit"
+                className="form-action-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Updating..." : "Update"}
+              </button>
+
+              <button
+                type="button"
+                className="form-action-btn"
+                onClick={handleCancelEdit}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
-        <div className="field-group">
-          <label htmlFor="content">Content</label>
-          <textarea
-            className="input-field"
-            id="content"
-            rows="4"
-            name="content"
-            value={note.content}
-            onChange={handleInputChange}
-            disabled={isSaving}
-            required
-          ></textarea>
-        </div>
-        <div className="field-group">
-          <label htmlFor="tags">Tags</label>
-          <input
-            className="input-field"
-            type="text"
-            id="tags"
-            name="tags"
-            placeholder="e.g. work, ideas"
-            value={note.tags}
-            onChange={handleInputChange}
-            disabled={isSaving}
-            autoComplete="off"
-          />
-        </div>
-        <div className="add-note-action">
-          <p
-            className={
-              addNoteStatus.className
-                ? `add-note-status ${addNoteStatus.className}`
-                : "add-note-status"
-            }
-          >
-            {addNoteStatus.msg}
-          </p>
-          <button type="submit" className="add-note-btn" disabled={isSaving}>
-            {isSaving ? "Saving..." : "Add Note"}
-          </button>
-        </div>
-      </form>
-    </section>
+      </div>
+    </form>
   );
 }
 

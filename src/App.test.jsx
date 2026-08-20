@@ -13,8 +13,16 @@ const passToSaveNoteAPI = (note) => Promise.resolve(note);
 const failToSaveNoteAPI = () =>
   Promise.reject(new Error("Failed to save note."));
 
-const renderApp = (saveNote = passToSaveNoteAPI) => {
-  render(<App saveNote={saveNote} />);
+const passToUpdateNoteAPI = (note) => Promise.resolve(note);
+
+const failToUpdateNoteAPI = () =>
+  Promise.reject(new Error("Failed to update note."));
+
+const renderApp = ({
+  saveNote = passToSaveNoteAPI,
+  updateNote = passToUpdateNoteAPI,
+} = {}) => {
+  render(<App saveNote={saveNote} updateNote={updateNote} />);
   return userEvent.setup();
 };
 
@@ -39,7 +47,7 @@ describe("App initial render", () => {
   test("renders the app heading", () => {
     renderApp();
 
-    expect(screen.getByText(/react notes board/i)).toBeInTheDocument();
+    expect(screen.getByText(/notes board/i)).toBeInTheDocument();
   });
 });
 
@@ -52,10 +60,10 @@ describe("Add note with tags", () => {
     await addNote(user);
 
     // Assert
-    expect(await screen.findByText("test title")).toBeInTheDocument();
-    expect(screen.getByText("test content")).toBeInTheDocument();
+    expect(await screen.findByText(defaultNote.title)).toBeInTheDocument();
+    expect(screen.getByText(defaultNote.content)).toBeInTheDocument();
 
-    const noteCard = screen.getByText("test title").closest("article");
+    const noteCard = screen.getByText(defaultNote.title).closest("article");
     expect(noteCard).not.toBeNull();
     expect(within(noteCard).getByText("test tag")).toBeInTheDocument();
     expect(screen.getByText(/all notes/i)).toBeInTheDocument();
@@ -69,7 +77,7 @@ describe("Add note with tags", () => {
     await addNote(user);
 
     // Wait for save to complete
-    await screen.findByText("test title");
+    await screen.findByText(defaultNote.title);
 
     // Assert
     expect(screen.getByLabelText(/title/i)).toHaveValue("");
@@ -98,7 +106,7 @@ describe("Add note with tags", () => {
     await addNote(user);
 
     // Wait for save to complete
-    await screen.findByText("test title");
+    await screen.findByText(defaultNote.title);
 
     // Assert
     expect(screen.getByText(/find notes/i)).toBeInTheDocument();
@@ -153,7 +161,9 @@ describe("Add note validation", () => {
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
     // Wait for note to be added
-    const noteCard = (await screen.findByText("test title")).closest("article");
+    const noteCard = (await screen.findByText(defaultNote.title)).closest(
+      "article",
+    );
     expect(noteCard).not.toBeNull();
 
     // Assert
@@ -175,8 +185,8 @@ describe("Add note validation", () => {
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
     // Assert
-    const title = await screen.findByText("test title");
-    const content = screen.getByText("test content");
+    const title = await screen.findByText(defaultNote.title);
+    const content = screen.getByText(defaultNote.content);
 
     expect(title.textContent).toBe("test title");
     expect(content.textContent).toBe("test content");
@@ -214,13 +224,267 @@ describe("Add note validation", () => {
 describe("Add note failure", () => {
   test("shows error message if note fails to save", async () => {
     // Arrange
-    const user = renderApp(failToSaveNoteAPI);
+    const user = renderApp({ saveNote: failToSaveNoteAPI });
 
     // Act
     await addNote(user);
 
     // Assert
     expect(await screen.findByText(/failed to save note/i)).toBeInTheDocument();
+  });
+});
+
+describe("Edit note", () => {
+  test("edits a note", async () => {
+    // Arrange
+    const user = renderApp({ updateNote: passToUpdateNoteAPI });
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    // Act
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "New title");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    // Assert
+    expect(await screen.findByText(/new title/i)).toBeInTheDocument();
+    expect(screen.queryByText(defaultNote.title)).not.toBeInTheDocument();
+    expect(screen.getByText(/note updated successfully/i)).toBeInTheDocument();
+  });
+
+  test("cancels editing a note without updating it", async () => {
+    // Arrange
+    const user = renderApp();
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    // Act
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Updated title");
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    // Assert
+    expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
+    expect(screen.queryByText(/updated title/i)).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: /add note/i }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: /add note/i }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: /update/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("pre-fills the form when edit button is clicked", async () => {
+    const user = renderApp();
+
+    const note = {
+      title: "React practice",
+      content: "Review forms and state",
+      tags: "react, study",
+    };
+
+    await addNote(user, note);
+
+    const noteTitle = await screen.findByText(note.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    expect(screen.getByLabelText(/title/i)).toHaveValue(note.title);
+    expect(screen.getByLabelText(/content/i)).toHaveValue(note.content);
+    expect(screen.getByLabelText(/tags/i)).toHaveValue("react, study");
+
+    expect(
+      screen.getByRole("heading", { name: /edit note/i }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: /update/i })).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  test("updates localStorage after editing a note", async () => {
+    const user = renderApp();
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Updated localStorage title");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    expect(
+      await screen.findByText(/updated localStorage title/i),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      const savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+
+      expect(savedNotes).toHaveLength(1);
+      expect(savedNotes[0]).toMatchObject({
+        title: "Updated localStorage title",
+        content: defaultNote.content,
+        tags: ["test tag"],
+      });
+    });
+  });
+
+  test("shows an error message if note update fails", async () => {
+    const user = renderApp({ updateNote: failToUpdateNoteAPI });
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Failed update title");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    expect(
+      await screen.findByText(/failed to update note/i),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
+    expect(screen.queryByText(/failed update title/i)).not.toBeInTheDocument();
+  });
+
+  test("shows validation error for spaces-only title while editing a note", async () => {
+    const user = renderApp();
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    await user.clear(screen.getByLabelText(/title/i));
+    await user.type(screen.getByLabelText(/title/i), "   ");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    expect(screen.getByText(/title is required/i)).toBeInTheDocument();
+    expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
+  });
+
+  test("shows validation error for spaces-only content while editing a note", async () => {
+    const user = renderApp();
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    await user.clear(screen.getByLabelText(/content/i));
+    await user.type(screen.getByLabelText(/content/i), "   ");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    expect(screen.getByText(/content is required/i)).toBeInTheDocument();
+    expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
+  });
+
+  test("clears update error when edit is cancelled", async () => {
+    const user = renderApp({ updateNote: failToUpdateNoteAPI });
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    const titleInput = screen.getByLabelText(/title/i);
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Failed update title");
+
+    await user.click(screen.getByRole("button", { name: /update/i }));
+
+    expect(
+      await screen.findByText(/failed to update note/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(
+      screen.queryByText(/failed to update note/i),
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: /add note/i }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: /update/i }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -259,6 +523,43 @@ describe("Delete note", () => {
     expect(screen.queryByText(/find notes/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/all notes/i)).not.toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
+  });
+
+  test("exits edit mode when the note being edited is deleted", async () => {
+    const user = renderApp();
+
+    await addNote(user);
+
+    const noteTitle = await screen.findByText(defaultNote.title);
+    const noteCard = noteTitle.closest("article");
+
+    expect(noteCard).not.toBeNull();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /edit note/i }),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /edit note/i }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(noteCard).getByRole("button", { name: /delete note/i }),
+    );
+
+    expect(screen.queryByText(defaultNote.title)).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: /add note/i }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: /update/i }),
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: /cancel/i }),
+    ).not.toBeInTheDocument();
   });
 });
 
