@@ -4,27 +4,11 @@ import NotesControls from "./components/NotesControls.jsx";
 import NotesList from "./components/NotesList.jsx";
 
 import { useState, useEffect, useRef } from "react";
+import { supabase } from "./lib/supabaseClient";
 import "./App.css";
-
-const STORAGE_KEY = "react-notes-board";
-
-function loadNotesFromStorage() {
-  const savedNotes = localStorage.getItem(STORAGE_KEY);
-
-  if (!savedNotes) return [];
-
-  try {
-    const parsedNotes = JSON.parse(savedNotes);
-    return Array.isArray(parsedNotes) ? parsedNotes : [];
-  } catch (error) {
-    console.error("Failed to parse notes from localStorage:", error);
-    return [];
-  }
-}
 
 function parseNote(note) {
   return {
-    ...note,
     title: note.title.trim(),
     content: note.content.trim(),
     tags: parseTags(note.tags),
@@ -38,13 +22,6 @@ function parseTags(tagsText) {
     .filter(Boolean);
 
   return [...new Set(cleanedTags)];
-}
-
-function createNote(note) {
-  return {
-    ...parseNote(note),
-    id: Date.now().toString(),
-  };
 }
 
 function getTagsSummary(notes) {
@@ -83,47 +60,112 @@ function getVisibleNotes(notes, debouncedSearchText, activeTag) {
   return visibleNotes;
 }
 
-const fakeAPI = {
-  saveNote(note) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const serverIsUp = Math.random() >= 0.2;
-        if (serverIsUp) {
-          resolve(note);
-        } else {
-          reject(
-            new Error("Failed to connect to the database. Please try again."),
-          );
-        }
-      }, 1500);
-    });
-  },
+let sessionPromise;
 
-  updateNote(note) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const serverIsUp = Math.random() >= 0.2;
-        if (serverIsUp) {
-          resolve(note);
-        } else {
-          reject(new Error("Failed to update note. Please try again."));
-        }
-      }, 1500);
-    });
-  },
+const getOrCreateSession = async () => {
+  if (!sessionPromise) {
+    sessionPromise = (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        return session;
+      }
+
+      const { data, error } = await supabase.auth.signInAnonymously();
+
+      if (error) {
+        throw error;
+      }
+
+      return data.session;
+    })();
+  }
+
+  try {
+    return await sessionPromise;
+  } catch (error) {
+    sessionPromise = null;
+    throw error;
+  }
 };
 
-function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
-  const [notes, setNotes] = useState(loadNotesFromStorage);
+const notesFetchRequest = async (signal) => {
+  let query = supabase
+    .from("notes")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const [notes, setNotes] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [activeTag, setActiveTag] = useState("");
   const [noteToEdit, setNoteToEdit] = useState(null);
+
   const formRef = useRef(null);
 
+  const handleRetry = async () => {
+    try {
+      setIsLoading(true);
+      setLoadError(null);
+
+      await getOrCreateSession();
+
+      const data = await notesFetchRequest();
+      setNotes(data);
+    } catch (error) {
+      console.error(error);
+      setLoadError("Failed to load notes.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  }, [notes]);
+    const controller = new AbortController();
+
+    const setupApp = async () => {
+      try {
+        await getOrCreateSession();
+
+        const data = await notesFetchRequest(controller.signal);
+        setNotes(data);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error(error);
+          setLoadError("Failed to load notes.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    setupApp();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const timeoutId = setTimeout(
@@ -136,41 +178,17 @@ function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
     };
   }, [searchText]);
 
-  const handleDeleteNote = (noteId) => {
-    const updatedNotes = notes.filter((note) => note.id !== noteId);
+  useEffect(() => {
+    if (!deleteError) return;
 
-    setNotes(updatedNotes);
+    const timeoutId = setTimeout(() => {
+      setDeleteError(null);
+    }, 3000);
 
-    if (noteToEdit?.id === noteId) {
-      setNoteToEdit(null);
-    }
-
-    if (updatedNotes.length === 0) {
-      setSearchText("");
-      setDebouncedSearchText("");
-      setActiveTag("");
-      return;
-    }
-
-    if (activeTag) {
-      const noteWithActiveTagExists = updatedNotes.some((note) =>
-        note.tags.includes(activeTag),
-      );
-
-      if (!noteWithActiveTagExists) {
-        setActiveTag("");
-      }
-    }
-  };
-
-  const handleEditNote = (note) => {
-    setNoteToEdit(note);
-
-    formRef.current?.scrollIntoView?.({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [deleteError]);
 
   const validateNoteTitleAndContent = (note) => {
     if (!note.title.trim()) {
@@ -184,28 +202,111 @@ function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
 
   const handleAddNote = async (note) => {
     validateNoteTitleAndContent(note);
-    const newNote = createNote(note);
-    const savedNote = await saveNote(newNote);
-    setNotes((previousNotes) => [...previousNotes, savedNote]);
+
+    const newNote = parseNote(note);
+
+    try {
+      const session = await getOrCreateSession();
+
+      const { data: savedNote, error } = await supabase
+        .from("notes")
+        .insert({
+          ...newNote,
+          user_id: session.user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setNotes((previousNotes) => [savedNote, ...previousNotes]);
+    } catch (error) {
+      console.error(error);
+      throw new Error("Failed to save note.", {
+        cause: error,
+      });
+    }
   };
 
   const handleUpdateNote = async (updatedNote) => {
     validateNoteTitleAndContent(updatedNote);
+
     const parsedNote = parseNote(updatedNote);
-    const savedNote = await updateNote(parsedNote);
 
-    setNotes((currentNotes) =>
-      currentNotes.map((note) =>
-        note.id === savedNote.id
-          ? {
-              ...note,
-              ...savedNote,
-            }
-          : note,
-      ),
-    );
+    try {
+      const { data: savedNote, error } = await supabase
+        .from("notes")
+        .update(parsedNote)
+        .eq("id", updatedNote.id)
+        .select()
+        .single();
 
-    setNoteToEdit(null);
+      if (error) {
+        throw error;
+      }
+
+      setNotes((currentNotes) =>
+        currentNotes.map((note) =>
+          note.id === savedNote.id ? savedNote : note,
+        ),
+      );
+
+      setNoteToEdit(null);
+    } catch (error) {
+      console.error(error);
+      throw new Error("Failed to update note.", { cause: error });
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    try {
+      setDeleteError(null);
+
+      const { error } = await supabase.from("notes").delete().eq("id", noteId);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedNotes = notes.filter((note) => note.id !== noteId);
+
+      setNotes(updatedNotes);
+
+      if (noteToEdit?.id === noteId) {
+        setNoteToEdit(null);
+      }
+
+      if (updatedNotes.length === 0) {
+        setSearchText("");
+        setDebouncedSearchText("");
+        setActiveTag("");
+        return;
+      }
+
+      if (activeTag) {
+        const noteWithActiveTagExists = updatedNotes.some((note) =>
+          note.tags.includes(activeTag),
+        );
+
+        if (!noteWithActiveTagExists) {
+          setActiveTag("");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setDeleteError("Failed to delete note.");
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setNoteToEdit(note);
+
+    formRef.current?.scrollIntoView?.({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const handleCancelEdit = () => {
@@ -219,6 +320,7 @@ function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
   return (
     <main className="container">
       <AppHeader />
+
       <NoteForm
         formRef={formRef}
         noteToEdit={noteToEdit}
@@ -226,7 +328,19 @@ function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
         onUpdateNote={handleUpdateNote}
         onCancelEdit={handleCancelEdit}
       />
-      {notes.length > 0 && (
+
+      {isLoading && <p>Loading notes...</p>}
+
+      {loadError && (
+        <div className="notes-error">
+          <p>{loadError}</p>
+          <button type="button" onClick={handleRetry}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !loadError && notes.length > 0 && (
         <>
           <NotesControls
             searchText={searchText}
@@ -243,6 +357,12 @@ function App({ saveNote = fakeAPI.saveNote, updateNote = fakeAPI.updateNote }) {
             onDelete={handleDeleteNote}
             onEdit={handleEditNote}
           />
+
+          {deleteError && (
+            <div className="delete-error" role="alert">
+              {deleteError}
+            </div>
+          )}
         </>
       )}
     </main>

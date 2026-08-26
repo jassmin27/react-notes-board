@@ -1,29 +1,38 @@
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import App from "./App.jsx";
+import { vi } from "vitest";
 
-beforeEach(() => {
-  localStorage.clear();
+vi.mock("./lib/supabaseClient", async () => {
+  const { supabase } = await import("./test/supabaseMock.js");
+
+  return {
+    supabase,
+  };
 });
 
-const STORAGE_KEY = "react-notes-board";
+import App from "./App.jsx";
 
-const passToSaveNoteAPI = (note) => Promise.resolve(note);
+import {
+  resetSupabaseMock,
+  seedNotes,
+  getMockNotes,
+  failNextSupabaseRequest,
+} from "./test/supabaseMock.js";
 
-const failToSaveNoteAPI = () =>
-  Promise.reject(new Error("Failed to save note."));
+beforeEach(() => {
+  resetSupabaseMock();
+});
 
-const passToUpdateNoteAPI = (note) => Promise.resolve(note);
+const renderApp = async () => {
+  render(<App />);
 
-const failToUpdateNoteAPI = () =>
-  Promise.reject(new Error("Failed to update note."));
+  const user = userEvent.setup();
 
-const renderApp = ({
-  saveNote = passToSaveNoteAPI,
-  updateNote = passToUpdateNoteAPI,
-} = {}) => {
-  render(<App saveNote={saveNote} updateNote={updateNote} />);
-  return userEvent.setup();
+  await waitFor(() => {
+    expect(screen.queryByText(/loading notes/i)).not.toBeInTheDocument();
+  });
+
+  return user;
 };
 
 const defaultNote = {
@@ -44,8 +53,8 @@ const addNote = async (user, note = defaultNote) => {
 };
 
 describe("App initial render", () => {
-  test("renders the app heading", () => {
-    renderApp();
+  test("renders the app heading", async () => {
+    await renderApp();
 
     expect(screen.getByText(/notes board/i)).toBeInTheDocument();
   });
@@ -54,7 +63,7 @@ describe("App initial render", () => {
 describe("Add note with tags", () => {
   test("adds a note with tags and shows it in the list", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user);
@@ -64,19 +73,20 @@ describe("Add note with tags", () => {
     expect(screen.getByText(defaultNote.content)).toBeInTheDocument();
 
     const noteCard = screen.getByText(defaultNote.title).closest("article");
+
     expect(noteCard).not.toBeNull();
+
     expect(within(noteCard).getByText("test tag")).toBeInTheDocument();
     expect(screen.getByText(/all notes/i)).toBeInTheDocument();
   });
 
   test("clears the form after adding a note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user);
 
-    // Wait for save to complete
     await screen.findByText(defaultNote.title);
 
     // Assert
@@ -87,7 +97,7 @@ describe("Add note with tags", () => {
 
   test("shows success message after adding a note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user);
@@ -100,12 +110,11 @@ describe("Add note with tags", () => {
 
   test("shows Find Notes section after adding a note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user);
 
-    // Wait for save to complete
     await screen.findByText(defaultNote.title);
 
     // Assert
@@ -114,7 +123,7 @@ describe("Add note with tags", () => {
 
   test("shows tag filter after adding a note with tags", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user);
@@ -129,7 +138,7 @@ describe("Add note with tags", () => {
 describe("Add note without tags", () => {
   test("adds a note when tags field is empty", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await addNote(user, {
@@ -148,7 +157,7 @@ describe("Add note without tags", () => {
 describe("Add note validation", () => {
   test("cleans tags before adding a note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await user.type(screen.getByLabelText(/title/i), "test title");
@@ -160,10 +169,10 @@ describe("Add note validation", () => {
 
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
-    // Wait for note to be added
     const noteCard = (await screen.findByText(defaultNote.title)).closest(
       "article",
     );
+
     expect(noteCard).not.toBeNull();
 
     // Assert
@@ -177,7 +186,7 @@ describe("Add note validation", () => {
 
   test("trims title and content before adding a note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await user.type(screen.getByLabelText(/title/i), "  test title  ");
@@ -194,7 +203,7 @@ describe("Add note validation", () => {
 
   test("does not add a note when title contains only spaces", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await user.type(screen.getByLabelText(/title/i), "   ");
@@ -208,7 +217,7 @@ describe("Add note validation", () => {
 
   test("does not add a note when content contains only spaces", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     // Act
     await user.type(screen.getByLabelText(/title/i), "test title");
@@ -224,7 +233,9 @@ describe("Add note validation", () => {
 describe("Add note failure", () => {
   test("shows error message if note fails to save", async () => {
     // Arrange
-    const user = renderApp({ saveNote: failToSaveNoteAPI });
+    const user = await renderApp();
+
+    failNextSupabaseRequest("insert", "Failed to save note.");
 
     // Act
     await addNote(user);
@@ -237,7 +248,8 @@ describe("Add note failure", () => {
 describe("Edit note", () => {
   test("edits a note", async () => {
     // Arrange
-    const user = renderApp({ updateNote: passToUpdateNoteAPI });
+    const user = await renderApp();
+
     await addNote(user);
 
     const noteTitle = await screen.findByText(defaultNote.title);
@@ -265,7 +277,8 @@ describe("Edit note", () => {
 
   test("cancels editing a note without updating it", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user);
 
     const noteTitle = await screen.findByText(defaultNote.title);
@@ -303,7 +316,8 @@ describe("Edit note", () => {
   });
 
   test("pre-fills the form when edit button is clicked", async () => {
-    const user = renderApp();
+    // Arrange
+    const user = await renderApp();
 
     const note = {
       title: "React practice",
@@ -318,10 +332,12 @@ describe("Edit note", () => {
 
     expect(noteCard).not.toBeNull();
 
+    // Act
     await user.click(
       within(noteCard).getByRole("button", { name: /edit note/i }),
     );
 
+    // Assert
     expect(screen.getByLabelText(/title/i)).toHaveValue(note.title);
     expect(screen.getByLabelText(/content/i)).toHaveValue(note.content);
     expect(screen.getByLabelText(/tags/i)).toHaveValue("react, study");
@@ -335,8 +351,9 @@ describe("Edit note", () => {
     expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
   });
 
-  test("updates localStorage after editing a note", async () => {
-    const user = renderApp();
+  test("updates the note in Supabase after editing", async () => {
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -351,29 +368,29 @@ describe("Edit note", () => {
 
     const titleInput = screen.getByLabelText(/title/i);
 
+    // Act
     await user.clear(titleInput);
-    await user.type(titleInput, "Updated localStorage title");
+    await user.type(titleInput, "Updated Supabase title");
 
     await user.click(screen.getByRole("button", { name: /update/i }));
 
-    expect(
-      await screen.findByText(/updated localStorage title/i),
-    ).toBeInTheDocument();
+    await screen.findByText(/updated supabase title/i);
 
-    await waitFor(() => {
-      const savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    // Assert
+    const savedNotes = getMockNotes();
 
-      expect(savedNotes).toHaveLength(1);
-      expect(savedNotes[0]).toMatchObject({
-        title: "Updated localStorage title",
-        content: defaultNote.content,
-        tags: ["test tag"],
-      });
+    expect(savedNotes).toHaveLength(1);
+
+    expect(savedNotes[0]).toMatchObject({
+      title: "Updated Supabase title",
+      content: defaultNote.content,
+      tags: ["test tag"],
     });
   });
 
   test("shows an error message if note update fails", async () => {
-    const user = renderApp({ updateNote: failToUpdateNoteAPI });
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -386,13 +403,17 @@ describe("Edit note", () => {
       within(noteCard).getByRole("button", { name: /edit note/i }),
     );
 
+    failNextSupabaseRequest("update", "Failed to update note.");
+
     const titleInput = screen.getByLabelText(/title/i);
 
+    // Act
     await user.clear(titleInput);
     await user.type(titleInput, "Failed update title");
 
     await user.click(screen.getByRole("button", { name: /update/i }));
 
+    // Assert
     expect(
       await screen.findByText(/failed to update note/i),
     ).toBeInTheDocument();
@@ -402,7 +423,8 @@ describe("Edit note", () => {
   });
 
   test("shows validation error for spaces-only title while editing a note", async () => {
-    const user = renderApp();
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -415,17 +437,20 @@ describe("Edit note", () => {
       within(noteCard).getByRole("button", { name: /edit note/i }),
     );
 
+    // Act
     await user.clear(screen.getByLabelText(/title/i));
     await user.type(screen.getByLabelText(/title/i), "   ");
 
     await user.click(screen.getByRole("button", { name: /update/i }));
 
+    // Assert
     expect(screen.getByText(/title is required/i)).toBeInTheDocument();
     expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
   });
 
   test("shows validation error for spaces-only content while editing a note", async () => {
-    const user = renderApp();
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -438,17 +463,20 @@ describe("Edit note", () => {
       within(noteCard).getByRole("button", { name: /edit note/i }),
     );
 
+    // Act
     await user.clear(screen.getByLabelText(/content/i));
     await user.type(screen.getByLabelText(/content/i), "   ");
 
     await user.click(screen.getByRole("button", { name: /update/i }));
 
+    // Assert
     expect(screen.getByText(/content is required/i)).toBeInTheDocument();
     expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
   });
 
   test("clears update error when edit is cancelled", async () => {
-    const user = renderApp({ updateNote: failToUpdateNoteAPI });
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -460,6 +488,8 @@ describe("Edit note", () => {
     await user.click(
       within(noteCard).getByRole("button", { name: /edit note/i }),
     );
+
+    failNextSupabaseRequest("update", "Failed to update note.");
 
     const titleInput = screen.getByLabelText(/title/i);
 
@@ -472,8 +502,10 @@ describe("Edit note", () => {
       await screen.findByText(/failed to update note/i),
     ).toBeInTheDocument();
 
+    // Act
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
+    // Assert
     expect(
       screen.queryByText(/failed to update note/i),
     ).not.toBeInTheDocument();
@@ -491,42 +523,75 @@ describe("Edit note", () => {
 describe("Delete note", () => {
   test("deletes a note from the list", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user);
     await screen.findByText(/test title/i);
 
     // Act
     const noteCard = screen.getByRole("article");
-    expect(noteCard).not.toBeNull();
+
     await user.click(
       within(noteCard).getByRole("button", { name: /delete note/i }),
     );
 
     // Assert
-    expect(screen.queryByText(/test title/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/test title/i)).not.toBeInTheDocument();
+    });
+  });
+
+  test("shows an error message if note deletion fails", async () => {
+    // Arrange
+    const user = await renderApp();
+
+    await addNote(user);
+    await screen.findByText(defaultNote.title);
+
+    failNextSupabaseRequest("delete", "Database delete failed.");
+
+    const noteCard = screen.getByRole("article");
+
+    // Act
+    await user.click(
+      within(noteCard).getByRole("button", { name: /delete note/i }),
+    );
+
+    // Assert
+    expect(
+      await screen.findByText(/failed to delete note/i),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText(defaultNote.title)).toBeInTheDocument();
+    expect(getMockNotes()).toHaveLength(1);
   });
 
   test("hides notes UI after deleting the last note", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user);
     await screen.findByText(/test title/i);
 
     // Act
     const noteCard = screen.getByRole("article");
-    expect(noteCard).not.toBeNull();
+
     await user.click(
       within(noteCard).getByRole("button", { name: /delete note/i }),
     );
 
     // Assert
-    expect(screen.queryByText(/find notes/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/find notes/i)).not.toBeInTheDocument();
+    });
+
     expect(screen.queryByText(/all notes/i)).not.toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
   });
 
   test("exits edit mode when the note being edited is deleted", async () => {
-    const user = renderApp();
+    // Arrange
+    const user = await renderApp();
 
     await addNote(user);
 
@@ -543,11 +608,15 @@ describe("Delete note", () => {
       screen.getByRole("heading", { name: /edit note/i }),
     ).toBeInTheDocument();
 
+    // Act
     await user.click(
       within(noteCard).getByRole("button", { name: /delete note/i }),
     );
 
-    expect(screen.queryByText(defaultNote.title)).not.toBeInTheDocument();
+    // Assert
+    await waitFor(() => {
+      expect(screen.queryByText(defaultNote.title)).not.toBeInTheDocument();
+    });
 
     expect(
       screen.getByRole("heading", { name: /add note/i }),
@@ -560,6 +629,29 @@ describe("Delete note", () => {
     expect(
       screen.queryByRole("button", { name: /cancel/i }),
     ).not.toBeInTheDocument();
+  });
+
+  test("removes the deleted note from Supabase", async () => {
+    // Arrange
+    const user = await renderApp();
+
+    await addNote(user);
+
+    await screen.findByText(defaultNote.title);
+
+    expect(getMockNotes()).toHaveLength(1);
+
+    const noteCard = screen.getByRole("article");
+
+    // Act
+    await user.click(
+      within(noteCard).getByRole("button", { name: /delete note/i }),
+    );
+
+    // Assert
+    await waitFor(() => {
+      expect(getMockNotes()).toHaveLength(0);
+    });
   });
 });
 
@@ -578,7 +670,8 @@ describe("Search notes", () => {
 
   test("filters notes by title text", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user, reactNote);
     await addNote(user, groceryNote);
 
@@ -601,7 +694,7 @@ describe("Search notes", () => {
 
   test("filters notes by content text", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
     await addNote(user, reactNote);
     await addNote(user, groceryNote);
@@ -626,7 +719,8 @@ describe("Search notes", () => {
 
   test("shows no results message when search has no matches", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user, reactNote);
     await addNote(user, groceryNote);
 
@@ -649,7 +743,8 @@ describe("Search notes", () => {
 
   test("shows all notes again when search input is cleared", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user, reactNote);
     await addNote(user, groceryNote);
 
@@ -690,7 +785,8 @@ describe("Tag filters", () => {
 
   test("filters notes by selected tag", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user, workNote);
     await addNote(user, personalNote);
 
@@ -707,7 +803,8 @@ describe("Tag filters", () => {
 
   test("resets to All tag when the selected tag has no notes left", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
+
     await addNote(user, workNote);
     await addNote(user, personalNote);
 
@@ -716,6 +813,7 @@ describe("Tag filters", () => {
     await user.click(screen.getByRole("button", { name: /work/i }));
 
     const noteCard = screen.getByText(/work task/i).closest("article");
+
     expect(noteCard).not.toBeNull();
 
     // Act
@@ -724,90 +822,110 @@ describe("Tag filters", () => {
     );
 
     // Assert
+    await waitFor(() => {
+      expect(screen.queryByText(/work task/i)).not.toBeInTheDocument();
+    });
+
     expect(screen.getByRole("button", { name: /all/i })).toHaveClass("active");
     expect(screen.getByText(/shopping list/i)).toBeInTheDocument();
-    expect(screen.queryByText(/work task/i)).not.toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(1);
   });
 });
 
-describe("localStorage persistence", () => {
-  test("loads notes from localStorage", () => {
+describe("Supabase persistence", () => {
+  test("loads existing notes from Supabase", async () => {
     // Arrange
-    const savedNotes = [
+    seedNotes([
       {
-        id: "1",
+        id: 1,
         title: "Saved note",
-        content: "Loaded from storage",
-        tags: ["storage"],
-        createdAt: new Date().toISOString(),
+        content: "Loaded from Supabase",
+        tags: ["supabase"],
       },
-    ];
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedNotes));
+    ]);
 
     // Act
-    renderApp();
+    await renderApp();
 
     // Assert
     expect(screen.getByText(/saved note/i)).toBeInTheDocument();
-    expect(screen.getByText(/loaded from storage/i)).toBeInTheDocument();
+    expect(screen.getByText(/loaded from supabase/i)).toBeInTheDocument();
   });
 
-  test("saves notes to localStorage when a note is added", async () => {
+  test("saves a note to Supabase when added", async () => {
     // Arrange
-    const user = renderApp();
+    const user = await renderApp();
 
-    let savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    expect(savedNotes).toHaveLength(0);
+    expect(getMockNotes()).toHaveLength(0);
 
     // Act
     await addNote(user, {
-      title: "Local note",
-      content: "Saved to localStorage",
-      tags: "storage",
+      title: "Supabase note",
+      content: "Saved remotely",
+      tags: "supabase",
     });
 
-    await screen.findByText(/local note/i);
+    await screen.findByText(/supabase note/i);
 
     // Assert
-    savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    const savedNotes = getMockNotes();
+
     expect(savedNotes).toHaveLength(1);
+
     expect(savedNotes[0]).toMatchObject({
-      title: "Local note",
-      content: "Saved to localStorage",
-      tags: ["storage"],
+      title: "Supabase note",
+      content: "Saved remotely",
+      tags: ["supabase"],
     });
   });
+});
 
-  test("removes deleted notes from localStorage", async () => {
+describe("Async data loading", () => {
+  test("shows loading state while notes are loading", () => {
+    render(<App />);
+
+    expect(screen.getByText(/loading notes/i)).toBeInTheDocument();
+  });
+
+  test("shows an error when initial notes loading fails", async () => {
     // Arrange
-    const user = renderApp();
-
-    await addNote(user, {
-      title: "Delete from storage",
-      content: "This should be removed",
-      tags: "storage",
-    });
-
-    await screen.findByText(/delete from storage/i);
-
-    let savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    expect(savedNotes).toHaveLength(1);
-
-    const noteCard = screen
-      .getByText(/delete from storage/i)
-      .closest("article");
-
-    expect(noteCard).not.toBeNull();
+    failNextSupabaseRequest("select", "Failed to load notes.");
 
     // Act
-    await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
-    );
+    await renderApp();
 
     // Assert
-    savedNotes = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    expect(savedNotes).toHaveLength(0);
+    expect(screen.getByText(/failed to load notes/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
+  });
+
+  test("retries loading notes after a failed request", async () => {
+    // Arrange
+    seedNotes([
+      {
+        id: 1,
+        title: "Retry note",
+        content: "Loaded after retry",
+        tags: ["retry"],
+      },
+    ]);
+
+    failNextSupabaseRequest("select", "Failed to load notes.");
+
+    render(<App />);
+
+    const user = userEvent.setup();
+
+    const retryButton = await screen.findByRole("button", {
+      name: /retry/i,
+    });
+
+    // Act
+    await user.click(retryButton);
+
+    // Assert
+    expect(await screen.findByText(/retry note/i)).toBeInTheDocument();
+
+    expect(screen.queryByText(/failed to load notes/i)).not.toBeInTheDocument();
   });
 });
