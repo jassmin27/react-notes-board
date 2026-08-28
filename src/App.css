@@ -49,6 +49,7 @@
   --space-sm: 0.5rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
 }
 
 body {
@@ -75,26 +76,20 @@ h3,
 h4,
 h5,
 h6,
-p {
+p,
+ul {
   margin: 0;
   padding: 0;
 }
 .container {
   width: min(90%, 650px);
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-.notes-error {
-  display: flex;
-  gap: var(--space-sm);
 }
 .app-heading {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-xl);
 }
 .app-heading-icon {
   width: 60px;
@@ -119,6 +114,11 @@ p {
 .app-heading-text p {
   margin: 0.35rem 0 0;
   line-height: 1.4;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 .section-card {
   gap: var(--space-md);
@@ -234,6 +234,10 @@ p {
   background-color: var(--color-border-light);
   cursor: default;
 }
+.notes-section {
+  display: flex;
+  flex-direction: column;
+}
 .notes-controls {
   display: flex;
   flex-direction: column;
@@ -275,9 +279,9 @@ p {
   border-color: var(--color-primary-border);
   color: var(--color-primary);
 }
-.notes-section {
+.notes-error {
   display: flex;
-  flex-direction: column;
+  gap: var(--space-sm);
 }
 .notes-section p.no-notes-found-msg {
   font-size: 0.9rem;
@@ -320,7 +324,7 @@ p {
 .note-card header .note-action-btn--delete:hover {
   color: var(--color-action-delete);
 }
-.note-card .content p {
+.note-card p.content {
   line-height: 1.5;
   margin-bottom: var(--space-sm);
   color: var(--color-text-muted);

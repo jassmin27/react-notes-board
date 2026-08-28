@@ -42,7 +42,7 @@ const defaultNote = {
 };
 
 const addNote = async (user, note = defaultNote) => {
-  await user.type(screen.getByLabelText(/title/i), note.title);
+  await user.type(screen.getByRole("textbox", { name: "Title" }), note.title);
   await user.type(screen.getByLabelText(/content/i), note.content);
 
   if (note.tags) {
@@ -90,7 +90,7 @@ describe("Add note with tags", () => {
     await screen.findByText(defaultNote.title);
 
     // Assert
-    expect(screen.getByLabelText(/title/i)).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("");
     expect(screen.getByLabelText(/content/i)).toHaveValue("");
     expect(screen.getByLabelText(/tags/i)).toHaveValue("");
   });
@@ -160,7 +160,10 @@ describe("Add note validation", () => {
     const user = await renderApp();
 
     // Act
-    await user.type(screen.getByLabelText(/title/i), "test title");
+    await user.type(
+      screen.getByRole("textbox", { name: "Title" }),
+      "test title",
+    );
     await user.type(screen.getByLabelText(/content/i), "test content");
     await user.type(
       screen.getByLabelText(/tags/i),
@@ -189,7 +192,10 @@ describe("Add note validation", () => {
     const user = await renderApp();
 
     // Act
-    await user.type(screen.getByLabelText(/title/i), "  test title  ");
+    await user.type(
+      screen.getByRole("textbox", { name: "Title" }),
+      "  test title  ",
+    );
     await user.type(screen.getByLabelText(/content/i), "  test content  ");
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
@@ -206,7 +212,7 @@ describe("Add note validation", () => {
     const user = await renderApp();
 
     // Act
-    await user.type(screen.getByLabelText(/title/i), "   ");
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "   ");
     await user.type(screen.getByLabelText(/content/i), "test content");
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
@@ -220,7 +226,10 @@ describe("Add note validation", () => {
     const user = await renderApp();
 
     // Act
-    await user.type(screen.getByLabelText(/title/i), "test title");
+    await user.type(
+      screen.getByRole("textbox", { name: "Title" }),
+      "test title",
+    );
     await user.type(screen.getByLabelText(/content/i), "   ");
     await user.click(screen.getByRole("button", { name: /add note/i }));
 
@@ -259,10 +268,12 @@ describe("Edit note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
 
     await user.clear(titleInput);
     await user.type(titleInput, "New title");
@@ -288,10 +299,12 @@ describe("Edit note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
 
     await user.clear(titleInput);
     await user.type(titleInput, "Updated title");
@@ -334,11 +347,15 @@ describe("Edit note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${note.title}`,
+      }),
     );
 
     // Assert
-    expect(screen.getByLabelText(/title/i)).toHaveValue(note.title);
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue(
+      note.title,
+    );
     expect(screen.getByLabelText(/content/i)).toHaveValue(note.content);
     expect(screen.getByLabelText(/tags/i)).toHaveValue("react, study");
 
@@ -363,10 +380,12 @@ describe("Edit note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
 
     // Act
     await user.clear(titleInput);
@@ -400,12 +419,14 @@ describe("Edit note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
     failNextSupabaseRequest("update", "Failed to update note.");
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
 
     // Act
     await user.clear(titleInput);
@@ -434,12 +455,14 @@ describe("Edit note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
     // Act
-    await user.clear(screen.getByLabelText(/title/i));
-    await user.type(screen.getByLabelText(/title/i), "   ");
+    await user.clear(screen.getByRole("textbox", { name: "Title" }));
+    await user.type(screen.getByRole("textbox", { name: "Title" }), "   ");
 
     await user.click(screen.getByRole("button", { name: /update/i }));
 
@@ -460,7 +483,9 @@ describe("Edit note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
     // Act
@@ -486,12 +511,14 @@ describe("Edit note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
     failNextSupabaseRequest("update", "Failed to update note.");
 
-    const titleInput = screen.getByLabelText(/title/i);
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
 
     await user.clear(titleInput);
     await user.type(titleInput, "Failed update title");
@@ -532,7 +559,9 @@ describe("Delete note", () => {
     const noteCard = screen.getByRole("article");
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${defaultNote.title}`,
+      }),
     );
 
     // Assert
@@ -554,7 +583,9 @@ describe("Delete note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${defaultNote.title}`,
+      }),
     );
 
     // Assert
@@ -577,7 +608,9 @@ describe("Delete note", () => {
     const noteCard = screen.getByRole("article");
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${defaultNote.title}`,
+      }),
     );
 
     // Assert
@@ -601,7 +634,9 @@ describe("Delete note", () => {
     expect(noteCard).not.toBeNull();
 
     await user.click(
-      within(noteCard).getByRole("button", { name: /edit note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Edit ${defaultNote.title}`,
+      }),
     );
 
     expect(
@@ -610,7 +645,9 @@ describe("Delete note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${defaultNote.title}`,
+      }),
     );
 
     // Assert
@@ -645,7 +682,9 @@ describe("Delete note", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${defaultNote.title}`,
+      }),
     );
 
     // Assert
@@ -793,7 +832,7 @@ describe("Tag filters", () => {
     expect(await screen.findAllByRole("article")).toHaveLength(2);
 
     // Act
-    await user.click(screen.getByRole("button", { name: /work/i }));
+    await user.click(screen.getByRole("button", { name: "work (1)" }));
 
     // Assert
     expect(await screen.findAllByRole("article")).toHaveLength(1);
@@ -810,7 +849,7 @@ describe("Tag filters", () => {
 
     expect(await screen.findAllByRole("article")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: /work/i }));
+    await user.click(screen.getByRole("button", { name: "work (1)" }));
 
     const noteCard = screen.getByText(/work task/i).closest("article");
 
@@ -818,7 +857,9 @@ describe("Tag filters", () => {
 
     // Act
     await user.click(
-      within(noteCard).getByRole("button", { name: /delete note/i }),
+      within(noteCard).getByRole("button", {
+        name: `Delete ${workNote.title}`,
+      }),
     );
 
     // Assert

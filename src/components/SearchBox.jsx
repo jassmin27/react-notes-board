@@ -5,8 +5,7 @@ function SearchBox(props) {
       <div className="field-group">
         <input
           className="input-field"
-          type="text"
-          id="search-notes-text"
+          type="search"
           aria-label="Search notes"
           placeholder="Search by title or content..."
           value={searchText}

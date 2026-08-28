@@ -141,11 +141,7 @@ function NoteFormFields({
   };
 
   const getFormTitle = () => {
-    const icon = isEditing ? (
-      <Pencil size={16} aria-hidden="true" />
-    ) : (
-      <Plus size={18} aria-hidden="true" />
-    );
+    const icon = isEditing ? <Pencil size={16} /> : <Plus size={18} />;
 
     const title = isEditing ? "Edit Note" : "Add Note";
 

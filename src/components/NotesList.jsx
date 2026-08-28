@@ -9,11 +9,11 @@ function NotesList(props) {
     <section className="notes-section section-card">
       <h2 className="section-title">
         <span className="section-title-icon" aria-hidden="true">
-          <NotepadText size={17} aria-hidden="true" />
+          <NotepadText size={17} />
         </span>
         {notesTitle}
       </h2>
-      {notes.length === 0 && (
+      {isSearching && notes.length === 0 && (
         <p className="no-notes-found-msg">No notes found.</p>
       )}
       <div className="note-cards">

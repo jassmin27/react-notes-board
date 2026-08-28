@@ -15,7 +15,7 @@ function NotesControls(props) {
     <section className="notes-controls section-card">
       <h2 className="section-title">
         <span className="section-title-icon" aria-hidden="true">
-          <Search size={17} aria-hidden="true" />
+          <Search size={17} />
         </span>
         Find Notes
       </h2>

@@ -8,6 +8,7 @@ function TagFilters(props) {
           type="button"
           onClick={() => onActiveTagChange("")}
           className={activeTag === "" ? "filter-pill active" : "filter-pill"}
+          aria-pressed={activeTag === ""}
         >
           All ({totalNotes})
         </button>
@@ -19,6 +20,7 @@ function TagFilters(props) {
             className={
               activeTag === tag.name ? "filter-pill active" : "filter-pill"
             }
+            aria-pressed={activeTag === tag.name}
           >
             {tag.name} ({tag.count})
           </button>

@@ -318,54 +318,56 @@ function App() {
   const tagsSummary = getTagsSummary(notes);
 
   return (
-    <main className="container">
+    <div className="container">
       <AppHeader />
 
-      <NoteForm
-        formRef={formRef}
-        noteToEdit={noteToEdit}
-        onAddNote={handleAddNote}
-        onUpdateNote={handleUpdateNote}
-        onCancelEdit={handleCancelEdit}
-      />
+      <main>
+        <NoteForm
+          formRef={formRef}
+          noteToEdit={noteToEdit}
+          onAddNote={handleAddNote}
+          onUpdateNote={handleUpdateNote}
+          onCancelEdit={handleCancelEdit}
+        />
 
-      {isLoading && <p>Loading notes...</p>}
+        {isLoading && <p>Loading notes...</p>}
 
-      {loadError && (
-        <div className="notes-error">
-          <p>{loadError}</p>
-          <button type="button" onClick={handleRetry}>
-            Retry
-          </button>
-        </div>
-      )}
+        {loadError && (
+          <div className="notes-error">
+            <p>{loadError}</p>
+            <button type="button" onClick={handleRetry}>
+              Retry
+            </button>
+          </div>
+        )}
 
-      {!isLoading && !loadError && notes.length > 0 && (
-        <>
-          <NotesControls
-            searchText={searchText}
-            onSearchChange={setSearchText}
-            tagsSummary={tagsSummary}
-            totalNotes={notes.length}
-            activeTag={activeTag}
-            onActiveTagChange={setActiveTag}
-          />
+        {!isLoading && !loadError && notes.length > 0 && (
+          <>
+            <NotesControls
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              tagsSummary={tagsSummary}
+              totalNotes={notes.length}
+              activeTag={activeTag}
+              onActiveTagChange={setActiveTag}
+            />
 
-          <NotesList
-            notes={visibleNotes}
-            isSearching={debouncedSearchText.length > 0}
-            onDelete={handleDeleteNote}
-            onEdit={handleEditNote}
-          />
+            <NotesList
+              notes={visibleNotes}
+              isSearching={debouncedSearchText.length > 0}
+              onDelete={handleDeleteNote}
+              onEdit={handleEditNote}
+            />
 
-          {deleteError && (
-            <div className="delete-error" role="alert">
-              {deleteError}
-            </div>
-          )}
-        </>
-      )}
-    </main>
+            {deleteError && (
+              <div className="delete-error" role="alert">
+                {deleteError}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   );
 }
 

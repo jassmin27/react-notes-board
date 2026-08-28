@@ -10,7 +10,7 @@ function NoteCard(props) {
           <button
             type="button"
             className="note-action-btn note-action-btn--edit"
-            aria-label="Edit note"
+            aria-label={`Edit ${note.title}`}
             onClick={() => onEdit(note)}
           >
             <Pencil size={16} aria-hidden="true" />
@@ -18,24 +18,22 @@ function NoteCard(props) {
           <button
             type="button"
             className="note-action-btn note-action-btn--delete"
-            aria-label="Delete note"
+            aria-label={`Delete ${note.title}`}
             onClick={() => onDelete(note.id)}
           >
             <Trash2 size={16} aria-hidden="true" />
           </button>
         </div>
       </header>
-      <div className="content">
-        <p>{note.content}</p>
-      </div>
+      <p className="content">{note.content}</p>
       <footer>
-        <div className="tags">
+        <ul className="tags">
           {note.tags.map((tag) => (
-            <span className="tag" key={tag}>
+            <li className="tag" key={tag}>
               {tag}
-            </span>
+            </li>
           ))}
-        </div>
+        </ul>
       </footer>
     </article>
   );
