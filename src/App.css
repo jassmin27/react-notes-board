@@ -15,11 +15,12 @@
   --color-placeholder: #8a8a8a;
 
   /* Accent / Primary */
-  --color-primary: #3b82f6;
+  --color-primary: #2f6fe4;
   --color-primary-hover: #2563eb;
   --color-primary-focus: rgba(59, 130, 246, 0.25);
 
   --color-primary-soft: rgba(79, 140, 255, 0.12);
+  --color-primary-light: #60a5fa;
   --color-primary-border: rgba(79, 140, 255, 0.25);
 
   --color-primary-text: #ffffff;
@@ -69,6 +70,16 @@ button,
 input,
 textarea {
   font-family: inherit;
+}
+input:focus,
+textarea:focus {
+  outline: 1px solid var(--color-primary);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px var(--color-primary-focus);
+}
+button:focus {
+  outline: 2px solid white;
+  outline-offset: 0;
 }
 h1,
 h2,
@@ -172,7 +183,7 @@ main {
   border-radius: 8px;
   background: var(--color-input-bg);
   color: var(--color-text);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease;
   font-size: 0.95rem;
   padding: 0.75rem;
 }
@@ -181,11 +192,6 @@ main {
 }
 .input-field::placeholder {
   color: var(--color-placeholder);
-}
-.input-field:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-focus);
 }
 .form-footer {
   display: flex;
@@ -273,7 +279,7 @@ main {
 .filter-pill:hover {
   background-color: var(--color-primary-soft);
   border-color: var(--color-primary-border);
-  color: var(--color-primary);
+  color: var(--color-primary-light);
 }
 .notes-error {
   display: flex;
@@ -313,10 +319,6 @@ main {
   line-height: 0;
   border-radius: 6px;
   transition: all 0.2s ease;
-}
-.note-action-btn:focus {
-  outline: 1px solid;
-  outline-offset: 1px;
 }
 .note-card header .note-action-btn--edit:hover {
   color: var(--color-action-edit);
