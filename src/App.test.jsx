@@ -89,8 +89,11 @@ describe("Add note with tags", () => {
 
     await screen.findByText(defaultNote.title);
 
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
+
     // Assert
-    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("");
+    expect(titleInput).toHaveValue("");
+    expect(titleInput).toHaveFocus();
     expect(screen.getByLabelText(/content/i)).toHaveValue("");
     expect(screen.getByLabelText(/tags/i)).toHaveValue("");
   });
@@ -266,12 +269,12 @@ describe("Edit note", () => {
 
     expect(noteCard).not.toBeNull();
 
+    const editButton = within(noteCard).getByRole("button", {
+      name: `Edit ${defaultNote.title}`,
+    });
+
     // Act
-    await user.click(
-      within(noteCard).getByRole("button", {
-        name: `Edit ${defaultNote.title}`,
-      }),
-    );
+    await user.click(editButton);
 
     const titleInput = screen.getByRole("textbox", { name: "Title" });
 
@@ -284,6 +287,8 @@ describe("Edit note", () => {
     expect(await screen.findByText(/new title/i)).toBeInTheDocument();
     expect(screen.queryByText(defaultNote.title)).not.toBeInTheDocument();
     expect(screen.getByText(/note updated successfully/i)).toBeInTheDocument();
+
+    expect(editButton).toHaveFocus();
   });
 
   test("cancels editing a note without updating it", async () => {
@@ -297,12 +302,12 @@ describe("Edit note", () => {
 
     expect(noteCard).not.toBeNull();
 
+    const editButton = within(noteCard).getByRole("button", {
+      name: `Edit ${defaultNote.title}`,
+    });
+
     // Act
-    await user.click(
-      within(noteCard).getByRole("button", {
-        name: `Edit ${defaultNote.title}`,
-      }),
-    );
+    await user.click(editButton);
 
     const titleInput = screen.getByRole("textbox", { name: "Title" });
 
@@ -326,6 +331,8 @@ describe("Edit note", () => {
     expect(
       screen.queryByRole("button", { name: /update/i }),
     ).not.toBeInTheDocument();
+
+    expect(editButton).toHaveFocus();
   });
 
   test("pre-fills the form when edit button is clicked", async () => {
@@ -352,10 +359,11 @@ describe("Edit note", () => {
       }),
     );
 
+    const titleInput = screen.getByRole("textbox", { name: "Title" });
+
     // Assert
-    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue(
-      note.title,
-    );
+    expect(titleInput).toHaveFocus();
+    expect(titleInput).toHaveValue(note.title);
     expect(screen.getByLabelText(/content/i)).toHaveValue(note.content);
     expect(screen.getByLabelText(/tags/i)).toHaveValue("react, study");
 

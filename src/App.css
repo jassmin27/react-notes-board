@@ -152,10 +152,6 @@ main {
   display: flex;
   flex-direction: column;
 }
-.add-note--editing {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow: 0 0 24px rgba(59, 130, 246, 0.18);
-}
 .add-note-form {
   display: flex;
   flex-direction: column;
@@ -317,6 +313,10 @@ main {
   line-height: 0;
   border-radius: 6px;
   transition: all 0.2s ease;
+}
+.note-action-btn:focus {
+  outline: 1px solid;
+  outline-offset: 1px;
 }
 .note-card header .note-action-btn--edit:hover {
   color: var(--color-action-edit);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Pencil, Plus } from "lucide-react";
 
 const STATUS_DATA = {
@@ -46,22 +46,15 @@ const getInitialNote = (noteToEdit) => {
 };
 
 function NoteForm(props) {
-  const { noteToEdit = null, formRef } = props;
+  const { noteToEdit = null } = props;
 
   const [formStatus, setFormStatus] = useState({
     msg: "",
     className: "",
   });
 
-  const isEditing = noteToEdit !== null;
-
   return (
-    <section
-      ref={formRef}
-      className={`add-note section-card ${
-        isEditing ? "add-note--editing" : ""
-      }`}
-    >
+    <section className="add-note section-card">
       <NoteFormFields
         key={noteToEdit?.id ?? "new"}
         {...props}
@@ -82,8 +75,22 @@ function NoteFormFields({
   setFormStatus,
 }) {
   const [note, setNote] = useState(() => getInitialNote(noteToEdit));
+  const titleInputRef = useRef(null);
 
   const isEditing = noteToEdit !== null;
+
+  useEffect(() => {
+    if (isEditing) {
+      titleInputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (!isEditing && formStatus.msg === STATUS_DATA.saveSuccess.msg) {
+      titleInputRef.current?.focus();
+    }
+  }, [formStatus.msg, isEditing]);
+
   const isSubmitting = formStatus.className === STATUS_DATA.saving.className;
 
   const handleCancelEdit = () => {
@@ -162,6 +169,7 @@ function NoteFormFields({
       <div className="field-group">
         <label htmlFor="title">Title</label>
         <input
+          ref={titleInputRef}
           className="input-field"
           type="text"
           id="title"

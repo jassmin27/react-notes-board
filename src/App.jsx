@@ -119,8 +119,7 @@ function App() {
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [activeTag, setActiveTag] = useState("");
   const [noteToEdit, setNoteToEdit] = useState(null);
-
-  const formRef = useRef(null);
+  const editButtonRef = useRef(null);
 
   const handleRetry = async () => {
     try {
@@ -230,6 +229,11 @@ function App() {
     }
   };
 
+  const handleEditNote = (note, editButton) => {
+    editButtonRef.current = editButton;
+    setNoteToEdit(note);
+  };
+
   const handleUpdateNote = async (updatedNote) => {
     validateNoteTitleAndContent(updatedNote);
 
@@ -254,10 +258,16 @@ function App() {
       );
 
       setNoteToEdit(null);
+      editButtonRef.current?.focus();
     } catch (error) {
       console.error(error);
       throw new Error("Failed to update note.", { cause: error });
     }
+  };
+
+  const handleCancelEdit = () => {
+    setNoteToEdit(null);
+    editButtonRef.current?.focus();
   };
 
   const handleDeleteNote = async (noteId) => {
@@ -300,19 +310,6 @@ function App() {
     }
   };
 
-  const handleEditNote = (note) => {
-    setNoteToEdit(note);
-
-    formRef.current?.scrollIntoView?.({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setNoteToEdit(null);
-  };
-
   const visibleNotes = getVisibleNotes(notes, debouncedSearchText, activeTag);
 
   const tagsSummary = getTagsSummary(notes);
@@ -323,7 +320,6 @@ function App() {
 
       <main>
         <NoteForm
-          formRef={formRef}
           noteToEdit={noteToEdit}
           onAddNote={handleAddNote}
           onUpdateNote={handleUpdateNote}

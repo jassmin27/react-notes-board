@@ -11,7 +11,7 @@ function NoteCard(props) {
             type="button"
             className="note-action-btn note-action-btn--edit"
             aria-label={`Edit ${note.title}`}
-            onClick={() => onEdit(note)}
+            onClick={(e) => onEdit(note, e.currentTarget)}
           >
             <Pencil size={16} aria-hidden="true" />
           </button>
