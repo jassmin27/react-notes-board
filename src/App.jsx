@@ -4,111 +4,19 @@ import NotesControls from "./components/NotesControls.jsx";
 import NotesList from "./components/NotesList.jsx";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "./lib/supabaseClient";
+import {
+  parseNote,
+  validateNoteTitleAndContent,
+  getTagsSummary,
+  getVisibleNotes,
+} from "./utils/notesUtils.js";
+import {
+  fetchNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+} from "./services/notesService.js";
 import "./App.css";
-
-function parseNote(note) {
-  return {
-    title: note.title.trim(),
-    content: note.content.trim(),
-    tags: parseTags(note.tags),
-  };
-}
-
-function parseTags(tagsText) {
-  const cleanedTags = tagsText
-    .split(",")
-    .map((tag) => tag.trim().toLowerCase())
-    .filter(Boolean);
-
-  return [...new Set(cleanedTags)];
-}
-
-function getTagsSummary(notes) {
-  const tagsSummary = notes.reduce((acc, note) => {
-    for (const tag of note.tags) {
-      const existingTag = acc.find((tagObject) => tagObject.name === tag);
-
-      if (existingTag) {
-        existingTag.count += 1;
-      } else {
-        acc.push({ name: tag, count: 1 });
-      }
-    }
-
-    return acc;
-  }, []);
-
-  return tagsSummary.sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function getVisibleNotes(notes, debouncedSearchText, activeTag) {
-  const normalizedSearchText = debouncedSearchText.trim().toLowerCase();
-
-  let visibleNotes = normalizedSearchText
-    ? notes.filter(
-        (note) =>
-          note.title.toLowerCase().includes(normalizedSearchText) ||
-          note.content.toLowerCase().includes(normalizedSearchText),
-      )
-    : notes;
-
-  if (activeTag) {
-    visibleNotes = visibleNotes.filter((note) => note.tags.includes(activeTag));
-  }
-
-  return visibleNotes;
-}
-
-let sessionPromise;
-
-const getOrCreateSession = async () => {
-  if (!sessionPromise) {
-    sessionPromise = (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session) {
-        return session;
-      }
-
-      const { data, error } = await supabase.auth.signInAnonymously();
-
-      if (error) {
-        throw error;
-      }
-
-      return data.session;
-    })();
-  }
-
-  try {
-    return await sessionPromise;
-  } catch (error) {
-    sessionPromise = null;
-    throw error;
-  }
-};
-
-const notesFetchRequest = async (signal) => {
-  let query = supabase
-    .from("notes")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (signal) {
-    query = query.abortSignal(signal);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -129,9 +37,7 @@ function App() {
       setIsLoading(true);
       setLoadError(null);
 
-      await getOrCreateSession();
-
-      const data = await notesFetchRequest();
+      const data = await fetchNotes();
       setNotes(data);
     } catch (error) {
       console.error(error);
@@ -146,9 +52,7 @@ function App() {
 
     const setupApp = async () => {
       try {
-        await getOrCreateSession();
-
-        const data = await notesFetchRequest(controller.signal);
+        const data = await fetchNotes(controller.signal);
         setNotes(data);
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -195,37 +99,11 @@ function App() {
     };
   }, [deleteStatus]);
 
-  const validateNoteTitleAndContent = (note) => {
-    if (!note.title.trim()) {
-      throw new Error("Title is required.");
-    }
-
-    if (!note.content.trim()) {
-      throw new Error("Content is required.");
-    }
-  };
-
   const handleAddNote = async (note) => {
     validateNoteTitleAndContent(note);
 
-    const newNote = parseNote(note);
-
     try {
-      const session = await getOrCreateSession();
-
-      const { data: savedNote, error } = await supabase
-        .from("notes")
-        .insert({
-          ...newNote,
-          user_id: session.user.id,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
+      const savedNote = await createNote(parseNote(note));
       setNotes((previousNotes) => [savedNote, ...previousNotes]);
     } catch (error) {
       console.error(error);
@@ -243,19 +121,11 @@ function App() {
   const handleUpdateNote = async (updatedNote) => {
     validateNoteTitleAndContent(updatedNote);
 
-    const parsedNote = parseNote(updatedNote);
-
     try {
-      const { data: savedNote, error } = await supabase
-        .from("notes")
-        .update(parsedNote)
-        .eq("id", updatedNote.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
+      const savedNote = await updateNote(
+        updatedNote.id,
+        parseNote(updatedNote),
+      );
 
       setNotes((currentNotes) =>
         currentNotes.map((note) =>
@@ -283,11 +153,7 @@ function App() {
         className: "",
       });
 
-      const { error } = await supabase.from("notes").delete().eq("id", noteId);
-
-      if (error) {
-        throw error;
-      }
+      await deleteNote(noteId);
 
       const updatedNotes = notes.filter((note) => note.id !== noteId);
 

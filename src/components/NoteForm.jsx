@@ -78,6 +78,8 @@ function NoteFormFields({
   const titleInputRef = useRef(null);
 
   const isEditing = noteToEdit !== null;
+  const FormIcon = isEditing ? Pencil : Plus;
+  const formTitle = isEditing ? "Edit Note" : "Add Note";
 
   useEffect(() => {
     if (isEditing) {
@@ -147,24 +149,14 @@ function NoteFormFields({
     }));
   };
 
-  const getFormTitle = () => {
-    const icon = isEditing ? <Pencil size={16} /> : <Plus size={18} />;
-
-    const title = isEditing ? "Edit Note" : "Add Note";
-
-    return (
-      <h2 className="section-title">
-        <span className="section-title-icon" aria-hidden="true">
-          {icon}
-        </span>
-        {title}
-      </h2>
-    );
-  };
-
   return (
     <form className="add-note-form" onSubmit={handleSubmit}>
-      {getFormTitle()}
+      <h2 className="section-title">
+        <span className="section-title-icon" aria-hidden="true">
+          <FormIcon size={isEditing ? 16 : 18} />
+        </span>
+        {formTitle}
+      </h2>
 
       <div className="field-group">
         <label htmlFor="title">Title</label>
