@@ -113,7 +113,10 @@ const notesFetchRequest = async (signal) => {
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [deleteError, setDeleteError] = useState(null);
+  const [deleteStatus, setDeleteStatus] = useState({
+    msg: "",
+    className: "",
+  });
   const [notes, setNotes] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
@@ -178,16 +181,19 @@ function App() {
   }, [searchText]);
 
   useEffect(() => {
-    if (!deleteError) return;
+    if (!deleteStatus.msg) return;
 
     const timeoutId = setTimeout(() => {
-      setDeleteError(null);
+      setDeleteStatus({
+        msg: "",
+        className: "",
+      });
     }, 3000);
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [deleteError]);
+  }, [deleteStatus]);
 
   const validateNoteTitleAndContent = (note) => {
     if (!note.title.trim()) {
@@ -272,7 +278,10 @@ function App() {
 
   const handleDeleteNote = async (noteId) => {
     try {
-      setDeleteError(null);
+      setDeleteStatus({
+        msg: "",
+        className: "",
+      });
 
       const { error } = await supabase.from("notes").delete().eq("id", noteId);
 
@@ -283,6 +292,11 @@ function App() {
       const updatedNotes = notes.filter((note) => note.id !== noteId);
 
       setNotes(updatedNotes);
+
+      setDeleteStatus({
+        msg: "Note deleted successfully!",
+        className: "success",
+      });
 
       if (noteToEdit?.id === noteId) {
         setNoteToEdit(null);
@@ -306,7 +320,11 @@ function App() {
       }
     } catch (error) {
       console.error(error);
-      setDeleteError("Failed to delete note.");
+
+      setDeleteStatus({
+        msg: "Failed to delete note.",
+        className: "error",
+      });
     }
   };
 
@@ -354,13 +372,16 @@ function App() {
               onDelete={handleDeleteNote}
               onEdit={handleEditNote}
             />
-
-            {deleteError && (
-              <div className="delete-error" role="alert">
-                {deleteError}
-              </div>
-            )}
           </>
+        )}
+
+        {deleteStatus.msg && (
+          <div
+            className={`delete-status ${deleteStatus.className}`}
+            role={deleteStatus.className === "error" ? "alert" : "status"}
+          >
+            {deleteStatus.msg}
+          </div>
         )}
       </main>
     </div>

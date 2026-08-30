@@ -35,6 +35,7 @@
   --color-status-error: #ed7979;
 
   /* Delete Note */
+  --color-delete-success: #166534;
   --color-delete-error: #c84040;
 
   /* Tags */
@@ -348,7 +349,7 @@ main {
   padding: 2px 6px;
   border-radius: 6px;
 }
-.delete-error {
+.delete-status {
   position: fixed;
   left: 50%;
   bottom: 1.5rem;
@@ -358,10 +359,16 @@ main {
   max-width: 320px;
   padding: 0.9rem 1.1rem;
 
+  color: var(--color-primary-text);
   border-radius: 8px;
-  background: var(--color-delete-error);
-
   font-size: 0.95rem;
+}
+.delete-status.success {
+  background: var(--color-delete-success);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.3);
+}
+.delete-status.error {
+  background: var(--color-delete-error);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 

@@ -605,7 +605,7 @@ describe("Delete note", () => {
     expect(getMockNotes()).toHaveLength(1);
   });
 
-  test("hides notes UI after deleting the last note", async () => {
+  test("hides notes UI and shows success after deleting the last note", async () => {
     // Arrange
     const user = await renderApp();
 
@@ -628,6 +628,7 @@ describe("Delete note", () => {
 
     expect(screen.queryByText(/all notes/i)).not.toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(screen.getByText(/note deleted successfully/i)).toBeInTheDocument();
   });
 
   test("exits edit mode when the note being edited is deleted", async () => {
