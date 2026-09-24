@@ -352,11 +352,12 @@ main {
 .delete-status {
   position: fixed;
   left: 50%;
-  bottom: 1.5rem;
+  bottom: 6vh;
   transform: translateX(-50%);
   z-index: 1000;
 
-  max-width: 320px;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
   padding: 0.9rem 1.1rem;
 
   color: var(--color-primary-text);
