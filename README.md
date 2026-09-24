@@ -1,8 +1,8 @@
 # Notes Board
 
-A CRUD notes app built with React.
+A CRUD notes app built with React and Supabase.
 
-Create, edit, delete, search, filter, and manage tagged notes with local persistence and tested user flows.
+Create, edit, delete, search and filter tagged notes with Supabase persistence, async request handling, and tested user flows.
 
 Live demo: https://react-notes-board.vercel.app/
 
@@ -16,9 +16,13 @@ Live demo: https://react-notes-board.vercel.app/
 - Add optional tags to notes
 - Search notes by title or content
 - Filter notes by tags
-- Keep notes saved between sessions
-- Show feedback while notes are saving or updating
+- Persist notes using Supabase
+- Debounced search
+- Loading, error and retry states
+- Request cancellation to prevent stale requests
+- Feedback for create, update and delete operations
 - Cancel editing without changing the original note
+- Built with accessibility in mind
 
 ## React Patterns Used
 
@@ -27,14 +31,16 @@ Live demo: https://react-notes-board.vercel.app/
 - Controlled form inputs
 - State management with hooks
 - Derived state for search and filters
-- useEffect hook for localStorage persistence and debounced search
-- useRef hook for scrolling to the edit form
-- Conditional rendering for empty lists, search results, and save status messages
+- `useEffect` for data fetching and debounced search
+- `useRef` for scrolling to the edit form
+- Conditional rendering for loading, error, search and status states
+- Logic separated into dedicated utilities and services
 
 ## Tech Stack
 
 - React
 - JavaScript
+- Supabase
 - HTML
 - CSS
 - Vite
@@ -43,6 +49,17 @@ Live demo: https://react-notes-board.vercel.app/
 - jest-dom
 - user-event
 - lucide-react
+
+## Testing
+
+Tests cover key user behaviours including:
+
+- Creating notes
+- Editing notes
+- Deleting notes
+- Searching and filtering
+- Loading and error states
+- Supabase interactions using mocked requests
 
 ## Getting Started
 
@@ -65,6 +82,6 @@ npm run build
 
 ## Project Status
 
-The current version includes the main CRUD notes workflow, local persistence, search, tag filtering, async save/update handling, validation, and test coverage for key user behaviours.
+The current version includes the complete CRUD notes workflow with Supabase persistence, search and tag filtering, debounced search, loading and error handling, retries, request cancellation, accessibility, and test coverage for key user behaviours.
 
-Planned improvements include async data fetching, request cancellation, race-condition handling, optimistic updates, and responsive refinements.
+Future improvements include migrating the app to TypeScript.
