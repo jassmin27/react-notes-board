@@ -202,6 +202,7 @@ main {
 }
 .form-status {
   font-size: 0.9rem;
+  min-height: 1rem;
   color: var(--color-placeholder);
 }
 .form-status.saving {
@@ -377,5 +378,18 @@ main {
   .input-field {
     font-size: 16px;
     padding: 0.65rem 0.7rem;
+  }
+}
+@media (max-width: 425px) {
+  .form-footer {
+    flex-direction: column;
+  }
+  .form-actions,
+  .form-edit-actions,
+  .add-note-btn {
+    width: 100%;
+  }
+  .form-edit-actions .form-action-btn {
+    flex: 1;
   }
 }
